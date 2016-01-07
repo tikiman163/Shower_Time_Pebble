@@ -1,7 +1,8 @@
 #include <pebble.h>
 
 Window *window;
-TextLayer *text_layer;
+TextLayer *text_layer_interface;
+TextLayer *text_layer_time;
 
 static bool st_timer_on = false;
 static int s_uptime = 0;
@@ -10,11 +11,11 @@ static int pulse_interval = 30;
 static void set_text() {
   static char s_total_buffer[64];
   
-  time_t temp = time(NULL);
-  struct tm *tick_time = localtime(&temp);
-  
   static char time_buffer[8];
-  strftime(time_buffer, sizeof(time_buffer), clock_is_24h_style() ? "%H:%M" : "%I:%M", tick_time);
+  static char time_text_buffer[16];
+  clock_copy_time_string(time_buffer, sizeof(time_buffer));
+  snprintf(time_text_buffer, sizeof(time_text_buffer), "Time %sM", time_buffer);
+  text_layer_set_text(text_layer_time, time_text_buffer);
   
   int seconds = s_uptime % 60;
   int minutes = (s_uptime % 3600) / 60;
@@ -25,9 +26,9 @@ static void set_text() {
   int interval_hours = pulse_interval / 3600;
   
   snprintf(s_total_buffer, sizeof(s_total_buffer),
-           "Time %s\nTimer: %d:%02d:%02d\nInterval:\n%d:%02d:%02d",
-           time_buffer, hours, minutes, seconds, interval_hours, interval_minutes, interval_seconds);
-  text_layer_set_text(text_layer, s_total_buffer);
+           "Timer: %d:%02d:%02d\nInterval:\n%d:%02d:%02d",
+           hours, minutes, seconds, interval_hours, interval_minutes, interval_seconds);
+  text_layer_set_text(text_layer_interface, s_total_buffer);
 }
 
 static void update_timer() {
@@ -39,22 +40,35 @@ static void update_timer() {
 }
 
 static void time_handler(struct tm *tick_time, TimeUnits units_changed) {
-  set_text();
   if(st_timer_on) {
     update_timer();
   }
+  set_text();
 }
 
 void window_load(Window *window)
 {
+  static char time_buffer[8];
+  clock_copy_time_string(time_buffer, sizeof(time_buffer));
+  static char initial_time_buffer[16];
+  snprintf(initial_time_buffer, sizeof(initial_time_buffer), "Time %sM", time_buffer);
   //We will add the creation of the Window's elements here soon!
-  text_layer = text_layer_create(GRect(0, 20, 144, 128));//H168 - 128 = 40 / 2 = 20
-  text_layer_set_text(text_layer, "00:00\nShower Timer:\n0h 0m 0s\nInterval: 30s");
-  text_layer_set_background_color(text_layer, GColorBlack);
-  text_layer_set_text_color(text_layer, GColorWhite);
-  text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
-  text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(text_layer));
+  
+  text_layer_interface = text_layer_create(GRect(0, 43, 144, 82));//24*3 = 72 2*5 = '82' / 2 = '43'
+  text_layer_set_text(text_layer_interface, "Timer: 0:00:00\nInterval:\n0:00:00");
+  text_layer_set_background_color(text_layer_interface, GColorBlack);
+  text_layer_set_text_color(text_layer_interface, GColorWhite);
+  text_layer_set_font(text_layer_interface, fonts_get_system_font(FONT_KEY_GOTHIC_24));
+  text_layer_set_text_alignment(text_layer_interface, GTextAlignmentCenter);
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(text_layer_interface));
+  
+  text_layer_time = text_layer_create(GRect(0, 0, 144, 18));
+  text_layer_set_text(text_layer_time, initial_time_buffer);
+  text_layer_set_background_color(text_layer_time, GColorWhite);
+  text_layer_set_text_color(text_layer_time, GColorBlue);
+  text_layer_set_font(text_layer_time, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+  text_layer_set_text_alignment(text_layer_time, GTextAlignmentCenter);
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(text_layer_time));
   
 }
 
@@ -78,7 +92,7 @@ static void timer_toggle() {
 void window_unload(Window *window)
 {
   //We will safely destroy the Window's elements here!
-  text_layer_destroy(text_layer);
+  text_layer_destroy(text_layer_interface);
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
