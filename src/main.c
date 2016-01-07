@@ -14,7 +14,7 @@ static void set_text() {
   static char time_buffer[8];
   static char time_text_buffer[16];
   clock_copy_time_string(time_buffer, sizeof(time_buffer));
-  snprintf(time_text_buffer, sizeof(time_text_buffer), "Time %sM", time_buffer);
+  snprintf(time_text_buffer, sizeof(time_text_buffer), clock_is_24h_style() ? "Time %s" : "Time %sM", time_buffer);
   text_layer_set_text(text_layer_time, time_text_buffer);
   
   int seconds = s_uptime % 60;
@@ -51,7 +51,7 @@ void window_load(Window *window)
   static char time_buffer[8];
   clock_copy_time_string(time_buffer, sizeof(time_buffer));
   static char initial_time_buffer[16];
-  snprintf(initial_time_buffer, sizeof(initial_time_buffer), "Time %sM", time_buffer);
+  snprintf(initial_time_buffer, sizeof(initial_time_buffer), clock_is_24h_style() ? "Time %s" : "Time %sM", time_buffer);
   //We will add the creation of the Window's elements here soon!
   
   text_layer_interface = text_layer_create(GRect(0, 43, 144, 82));//24*3 = 72 2*5 = '82' / 2 = '43'
